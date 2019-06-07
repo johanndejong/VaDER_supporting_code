@@ -19,7 +19,8 @@ PARAM_SEED <- 12345
 DIR_IN <- file.path("..", "data", "PPMI")
 DIR_OUT <- file.path("..", "results", "PPMI", "rgmvae", "hyperparameter_optimization", TIME_STAMP)
 F_OUT <- file.path(DIR_OUT, sprintf("grid_search_seed%i.RData", SEED))
-F_IN <- file.path(DIR_IN, "PPMI.RData")
+# F_IN <- file.path(DIR_IN, "PPMI.RData")
+F_IN <- file.path("ADNI_artificial_data.RData")
 N_SAMPLE <- 4e3 # Inf; 100 takes 90 minutes using 3x100 cores
 N_PERM  <- 1e3
 COMPUTE_PREDICTION_STRENGTH <- TRUE

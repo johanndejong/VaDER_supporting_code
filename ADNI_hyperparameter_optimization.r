@@ -15,7 +15,8 @@ PRINT_OUT <- "ADNI_hyperparameter_optimization.out"
 DIR_OUT <- file.path("..", "results", "ADNI", "vader", "hyperparameter_optimization", TIME_STAMP)
 F_OUT <- file.path(DIR_OUT, sprintf("grid_search_seed%i.RData", SEED))
 DIR_IN <- file.path("..", "data", "ADNI")
-F_IN <- file.path(DIR_IN, "ADNI.RData")
+# F_IN <- file.path(DIR_IN, "ADNI.RData")
+F_IN <- file.path("ADNI_artificial_data.RData")
 VARS <- c("ADAS13", "CDRSB", "MMSE", "FAQ")
 N_SAMPLE <- 1e4 # Inf; 100 takes 90 minutes using 3x100 cores
 N_PERM <- 1e3
