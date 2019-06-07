@@ -68,6 +68,7 @@ eval(s[grep("<- function\\(", s)])
 load(F_IN)
 W <- 1 - MNAR
 dimnames(X)[[3]] <- dimnames(W)[[3]] <- toupper(dimnames(X)[[3]])
+X[W == 0] <- 0 # set missing values arbitrarily to 0 (can be any value)
 
 perf <- explore_grid(
   data = X,

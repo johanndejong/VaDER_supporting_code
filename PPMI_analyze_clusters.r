@@ -81,7 +81,6 @@ DT <- DT[, keep, with = FALSE]
 groups <- groups[keep]
 cnames <- colnames(DT)
 
-# confounders <- c("ENROLL_AGE", "SimpleGender", "EDUCYRS")
 confounders <- c("ENROLL_AGE", "EDUCYRS")
 clusterings <- c("VADER", "PD.progression.HDDC")
 mask <- !colnames(DT) %in% confounders & !colnames(DT) %in% clusterings
@@ -198,6 +197,8 @@ for (clustering in clusterings) {
 
 plotfunc <- function(confounder, pval = TRUE, label = "p", description = NULL) {
   dt <- dt[ !is.na(dt[[confounder]]),]
+  main <- if (is.null(description)) confounder else description
+  main <- paste(strwrap(gsub("_", " ", main), 40), collapse = "\n")
   if (nrow(dt) > 0) {
     if (!is.numeric(dt[[confounder]]) || length(unique(dt[[confounder]])) < 4) {
       tab <- table(dt[[confounder]], dt$VADER)
@@ -206,7 +207,7 @@ plotfunc <- function(confounder, pval = TRUE, label = "p", description = NULL) {
         ylim = 0:1,
         ylab = "Fraction",
         xlab = "",
-        main = if (is.null(description)) confounder else description,
+        main = main,
         legend = TRUE
       )
       if (is.logical(pval) && pval) {
@@ -237,10 +238,10 @@ plotfunc <- function(confounder, pval = TRUE, label = "p", description = NULL) {
     } else {
       boxplot(
         dt[[confounder]] ~ dt$VADER,
-        ylab = confounder,
+        ylab = "Value",
         xlab = "Cluster",
         outline = FALSE,
-        main = if (is.null(description)) confounder else description,
+        main = main,
         ylim = range(dt[[confounder]])
       )
       stripchart(
@@ -291,24 +292,28 @@ for (i in 1:length(G)) {
   n <- ceiling(sqrt(length(sel_vars)))
   m <- ceiling(sqrt(length(sel_vars)))
   
-  for (sel_var in sel_vars) {
-    pdf(
-      file.path(subdir_out, sprintf("%s.pdf", sel_var)),
-      width = 3,
-      height = 5
-    )
-    plotfunc(sel_var, P$qval[P$variable == sel_var], label = "q")
-    dev.off()
-  }
+  # for (sel_var in sel_vars) {
+  #   pdf(
+  #     file.path(subdir_out, sprintf("%s.pdf", sel_var)),
+  #     width = 3,
+  #     height = 5
+  #   )
+  #   plotfunc(sel_var, P$qval[P$variable == sel_var], label = "q")
+  #   dev.off()
+  # }
   
   pdf(
     file.path(dir_out, sprintf("variables_%s.pdf", names(G)[i])), 
-    width = n * 7, 
-    height = m * 4
+    width = n * 3, 
+    height = m * 2
   )
   par(mfrow = c(n, m), mar = c(2, 4, 4, 2) + .1)
   for (sel_var in sel_vars) {
-    plotfunc(sel_var, P$qval[P$variable == sel_var], label = "q")
+    plotfunc(
+      sel_var, 
+      P$qval[P$variable == sel_var], 
+      label = "q"
+    )
   }
   par(mfrow = c(1, 1), mar = c(5, 4, 4, 2) + .1)
   dev.off()
@@ -445,6 +450,8 @@ for (clustering in clusterings) {
 plotfunc <- function(cname, pval = TRUE, label = "q", description = NULL) {
   vars <- colnames(DT)[grepl(sprintf("%s_BL$|%s_V[0-9]{2}", cname, cname), colnames(DT))]
   varname <- unique(gsub("_BL$|_V[0-9]{2}", "", vars))
+  main <- if (is.null(description)) varname else description
+  main <- paste(strwrap(gsub("_", " ", main), 30), collapse = "\n")
   X <- as.integer(gsub("^.*_V", "", gsub("_BL$", "_V00", vars)))
   dt <- DT[, c(vars, "VADER"), with = FALSE]
   Y <- dt[, lapply(.SD, mean, na.rm = TRUE), by = VADER]
@@ -467,7 +474,7 @@ plotfunc <- function(cname, pval = TRUE, label = "q", description = NULL) {
     col = rainbow(length(ii)),
     xlab = "Month",
     ylab = "Value",
-    main = if (is.null(description)) varname else description
+    main = main
   )
   text(
     mean(range(X)),
@@ -520,8 +527,8 @@ for (i in 1:length(G)) {
   
   pdf(
     file.path(dir_out, sprintf("variables_series_%s.pdf", names(G)[i])), 
-    width = n * 4, 
-    height = m * 4
+    width = n * 3.5, 
+    height = m * 3
   )
   par(mfrow = c(n, m), mar = c(2, 4, 4, 2) + .1)
   for (sel_var in sel_vars) {

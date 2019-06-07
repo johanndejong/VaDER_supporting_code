@@ -347,6 +347,7 @@ explore_grid <- function(
 }
 
 L <- load_data(f_in = F_IN, vars = VARS)
+L$X[L$W == 0] <- 0 # set missing values arbitrarily to 0 (can be any value)
 perf <- explore_grid(
   data = L$X,
   weights = L$W,

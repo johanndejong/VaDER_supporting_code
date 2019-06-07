@@ -2,8 +2,7 @@
 dir_in <- file.path("..", "data", "ADNI")
 dir_out <- file.path("..", "results", "ADNI", "analyze_clusters")
 files <- file.path(c(
-  # file.path("..", "results", "ADNI", "vader", "hyperparameter_optimization", "20190417124750")
-  file.path("..", "results", "ADNI", "vader", "scores")
+  file.path("..", "results", "ADNI", "vader", "hyperparameter_optimization", "20190417124750")
 ), "clustering.RData")
 f_ADNI <- file.path(dir_in, "ADNI.RData")
 f_adni_ori <- file.path(dir_in, "from_karki", "BeforeImpADNI.csv")
@@ -100,7 +99,6 @@ groups <- groups[keep]
 colnames(DT) <- gsub("^.*____", "", colnames(DT))
 cnames <- colnames(DT)
 
-# confounders <- c("AGE.bl", "PTGENDER.bl", "PTEDUCAT.bl")
 confounders <- c("AGE.bl", "PTEDUCAT.bl")
 clusterings <- c("RVAE", "VADER")
 mask <- !colnames(DT) %in% confounders & !colnames(DT) %in% clusterings
@@ -214,6 +212,8 @@ for (clustering in clusterings) {
 
 plotfunc <- function(confounder, pval = TRUE, label = "p", description = NULL) {
   dt <- dt[ !is.na(dt[[confounder]]),]
+  main <- if (is.null(description)) confounder else description
+  main <- paste(strwrap(gsub("_", " ", main), 40), collapse = "\n")
   if (nrow(dt) > 0) {
     if (!is.numeric(dt[[confounder]]) || length(unique(dt[[confounder]])) < 4) {
       tab <- table(dt[[confounder]], dt$VADER)
@@ -222,7 +222,7 @@ plotfunc <- function(confounder, pval = TRUE, label = "p", description = NULL) {
         ylim = 0:1,
         ylab = "Fraction",
         xlab = "Cluster",
-        main = if (is.null(description)) confounder else description,
+        main = main,
         legend = TRUE
       )
       if (is.logical(pval) && pval) {
@@ -238,13 +238,13 @@ plotfunc <- function(confounder, pval = TRUE, label = "p", description = NULL) {
           frac,
           labels = "Expected",
           col = "red",
-          pos = 1
+          pos = 3
         )
       }
       if (is.numeric(pval)) {
         text(
           mean(b),
-          0.5,
+          0,
           labels = sprintf("%s = %.2g", label, pval),
           col = "red",
           pos = 3
@@ -253,10 +253,10 @@ plotfunc <- function(confounder, pval = TRUE, label = "p", description = NULL) {
     } else {
       boxplot(
         dt[[confounder]] ~ dt$VADER,
-        ylab = confounder,
+        ylab = "Value",
         xlab = "",
         outline = FALSE,
-        main = if (is.null(description)) confounder else description,
+        main = main,
         ylim = range(dt[[confounder]])
       )
       stripchart(
@@ -321,12 +321,16 @@ for (i in 1:length(G)) {
 
   pdf(
     file.path(dir_out, sprintf("variables_%s.pdf", names(G)[i])), 
-    width = n * 7, 
-    height = m * 4
+    width = n * 2.5, 
+    height = m * 1.75
   )
   par(mfrow = c(n, m), mar = c(2, 4, 4, 2) + .1)
   for (sel_var in sel_vars) {
-    plotfunc(sel_var, P$qval[P$variable == sel_var], label = "q")
+    plotfunc(
+      sel_var, 
+      P$qval[P$variable == sel_var], 
+      label = "q"
+    )
   }
   par(mfrow = c(1, 1), mar = c(5, 4, 4, 2) + .1)
   dev.off()
@@ -442,6 +446,8 @@ for (clustering in clusterings) {
 plotfunc <- function(cname, pval = TRUE, label = "q", description = NULL) {
   vars <- colnames(DT)[grepl(sprintf("%s\\.bl$|%s\\.m[0-9]{2}", cname, cname), colnames(DT))]
   varname <- unique(gsub("\\.bl$|\\.m[0-9]{2}", "", vars))
+  main <- if (is.null(description)) varname else description
+  main <- paste(strwrap(gsub("_", " ", main), 30), collapse = "\n")
   X <- as.integer(gsub("^.*\\.m", "", gsub("\\.bl$", ".m00", vars)))
   dt <- DT[, c(vars, "VADER"), with = FALSE]
   Y <- dt[, lapply(.SD, mean, na.rm = TRUE), by = VADER]
@@ -464,7 +470,7 @@ plotfunc <- function(cname, pval = TRUE, label = "q", description = NULL) {
     col = rainbow(length(ii)),
     xlab = "Month",
     ylab = "Value",
-    main = if (is.null(description)) varname else description
+    main = main
   )
   text(
     mean(range(X)),
@@ -484,8 +490,8 @@ plotfunc <- function(cname, pval = TRUE, label = "q", description = NULL) {
 
 P <- fread(file.path(dir_out, "VADER_series.csv"))
 
-pdf(file.path(dir_out, "variables_series.pdf"), width = 12, height = 6)
-par(mfrow = c(2, 4))
+pdf(file.path(dir_out, "variables_series.pdf"), width = 10, height = 8)
+par(mfrow = c(3, 3))
 for (selected_var in cnames) {
   q <- P$qval_marker_time_markertime[P$variable == selected_var]
   if (q < 0.05) {
