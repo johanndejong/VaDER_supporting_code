@@ -1,6 +1,6 @@
 args <- commandArgs(trailingOnly = TRUE)
 if (length(args) == 0) {
-  N_PROC <- 120
+  N_PROC <- 2
   SEED <- 12345
   TIME_STAMP <- system("date +'%Y%m%d%H%M%S'", intern = TRUE)
 } else {
@@ -9,7 +9,7 @@ if (length(args) == 0) {
   TIME_STAMP <- as.character(args[3])
 }
 
-USE_PYTHON <- "/nmitapps/lib/python/anaconda/3.6/bin/python3.6"
+USE_PYTHON <- NULL # "/nmitapps/lib/python/anaconda/3.6/bin/python3.6"
 VADER_PATH <- file.path("..", "VaDER")
 PRINT_OUT <- "ADNI_hyperparameter_optimization.out"
 DIR_OUT <- file.path("..", "results", "ADNI", "vader", "hyperparameter_optimization", TIME_STAMP)
@@ -56,7 +56,9 @@ library(matrixStats)
 library(fossil)
 library(reticulate)
 # call directly after loading reticulate
-use_python(USE_PYTHON, required = TRUE)
+if (!is.null(USE_PYTHON)) {
+  use_python(USE_PYTHON, required = TRUE)
+}
 file.remove(PRINT_OUT)
 dir.create(DIR_OUT, recursive = TRUE)
 
@@ -151,7 +153,7 @@ cross_validate <- function(params, data, weights, n_fold, n_perm, seed = NULL) {
     fold <- folds[[i]]
     save_dir <- file.path(
       "temp", 
-      paste(sample(letters, 128, replace = TRUE), collapse = ""),
+      paste(sample(letters, 64, replace = TRUE), collapse = ""),
       gsub("-", "minus", paste(unlist(sapply(params, as.character)), collapse = "_"))
     )
     dir.create(save_dir, recursive = TRUE)
@@ -310,16 +312,13 @@ explore_grid <- function(
   clusterExport(cl, envir = environment(), varlist = c(
     "data", "paramspace", "cross_validate", "n_fold", 
     "is_first_iteration", "n_perm", "seed", "weights", "n_proc", "PRINT_OUT",
-    "COMPUTE_PREDICTION_STRENGTH", "VADER_PATH"
+    "COMPUTE_PREDICTION_STRENGTH", "VADER_PATH", "USE_PYTHON"
   ))
   
   clusterEvalQ(cl, {
     library(reticulate)
-    if (file.exists("/nmitapps/lib/python/anaconda/3.6/bin/python3.6")) {
-      use_python(
-        "/nmitapps/lib/python/anaconda/3.6/bin/python3.6", 
-        required = TRUE
-      )
+    if (!is.null(USE_PYTHON)) {
+      use_python(USE_PYTHON, required = TRUE)
     }
   })
   cv_func <- function(i) {

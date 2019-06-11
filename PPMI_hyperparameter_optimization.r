@@ -1,8 +1,8 @@
 args <- commandArgs(trailingOnly = TRUE)
 if (length(args) == 0) {
-  N_PROC <- 120
+  N_PROC <- 2
   SEED <- 12345
-  TIME_STAMP <- system("`date +'%Y%m%d%H%M%S'`", intern = TRUE)
+  TIME_STAMP <- system("date +'%Y%m%d%H%M%S'", intern = TRUE)
 } else {
   N_PROC <- as.integer(args[1])
   SEED <- as.integer(args[2])
@@ -10,7 +10,7 @@ if (length(args) == 0) {
 }
 
 # some input file dependencies and parameters
-USE_PYTHON <- "/nmitapps/lib/python/anaconda/3.6/bin/python3.6"
+USE_PYTHON <- NULL # "/nmitapps/lib/python/anaconda/3.6/bin/python3.6"
 VADER_PATH <- file.path("..", "VaDER")
 PRINT_OUT <- "PPMI_hyperparameter_optimization.out"
 CODE_DIR <- "."
@@ -57,7 +57,9 @@ library(gplots)
 library(matrixStats)
 library(reticulate)
 # call directly after loading reticulate
-use_python(USE_PYTHON, required = TRUE)
+if (!is.null(USE_PYTHON)) {
+  use_python(USE_PYTHON, required = TRUE)
+}
 file.remove(PRINT_OUT)
 dir.create(DIR_OUT, recursive = TRUE)
 
@@ -79,7 +81,7 @@ load_data <- function(f_in) {
   }
 }
 
-L <- load_data(f_in)
+L <- load_data(F_IN)
 
 perf <- explore_grid(
   data = L$X,
