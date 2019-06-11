@@ -51,12 +51,18 @@ parse_results <- function(dir_out, metric, decreasing = TRUE) {
 # non-variational hyperparameter optimization #
 ###############################################
 
-time_stamp <- "20190412210958"
-metric <- "test_reconstruction_loss"
-decreasing <- FALSE
-dir_out <- file.path("..", "results", "PPMI", "vader", "hyperparameter_optimization", time_stamp)
-perf <- parse_results(dir_out, metric, decreasing = decreasing)
-fwrite(perf, file = file.path(dir_out, "grid_search.csv"))
+# First run PPMI_hyperparameter_optimization.r, which 
+# writes its output to a directory for which you need
+# to provide the name below in the variable dir_out. 
+# Given the hyperparameter optimization results, the
+# code below is runnable and can be uncommented
+
+# time_stamp <- "20190412210958"
+# metric <- "test_reconstruction_loss"
+# decreasing <- FALSE
+# dir_out <- file.path("..", "results", "PPMI", "vader", "hyperparameter_optimization", time_stamp)
+# perf <- parse_results(dir_out, metric, decreasing = decreasing)
+# fwrite(perf, file = file.path(dir_out, "grid_search.csv"))
 
 
 ############################################
@@ -65,58 +71,50 @@ fwrite(perf, file = file.path(dir_out, "grid_search.csv"))
 # hyperparameters for each k: choose best k#
 ############################################
 
-time_stamp <- "20190417134522"
-metric <- "prediction_strength"
-decreasing <- TRUE
-dir_out <- file.path("..", "results", "PPMI", "vader", "hyperparameter_optimization", time_stamp)
-p <- parse_results(dir_out, metric, decreasing = decreasing)
-fwrite(p, file = file.path(dir_out, "number_of_clusters.csv"))
+# First run PPMI_hyperparameter_optimization.r, which 
+# writes its output to a directory for which you need
+# to provide the name below in the variable dir_out. 
+# Given the hyperparameter optimization results, the
+# code below is runnable and can be uncommented
 
-# x <- (p$prediction_strength - p$prediction_strength__95CI) - 
-#   (p$prediction_strength_null - p$prediction_strength_null__95CI)
-# y <- q$prediction_strength / q$prediction_strength_null
-# plot(x, y, log = "y", col = "white")
-# text(x, y, label = p$k)
-
-# plot(p$test_latent_loss, p$adj_rand_index, col = "white")
-# text(p$test_latent_loss, p$adj_rand_index, label = p$k)
-
-# plot(q$prediction_strength, q$rand_index, col = "white")
-# text(q$prediction_strength, q$rand_index, label = p$k)
-
-
-
-pdf(file.path(dir_out, "number_of_clusters.pdf"))
-
-mu <- p[[metric]]
-sigma <- p[[sprintf("%s__95CI", metric)]]
-mu_null <- p[[sprintf("%s_null", metric)]]
-sigma_null <- p[[sprintf("%s_null__95CI", metric)]]
-ii <- order(p$k, decreasing = FALSE)
-x <- matrix(rep(p$k, 6), ncol = 6)[ii,]
-y <- cbind(
-  mu - sigma, mu, mu + sigma,
-  mu_null - sigma_null, mu_null, mu_null + sigma_null
-)[ii,]
-matplot(
-  x = x,
-  y = y,
-  xlab = "k",
-  ylab = metric,
-  type = "l",
-  lty = rep(c(2, 1, 2), 2),
-  lwd = rep(c(1, 2, 1), 2),
-  col = c(rep("blue", 3), rep("red", 3)),
-  main = ""
-)
-legend(
-  "topright",
-  legend = c("model", "null", "95% CI"),
-  col = c("blue", "red", "gray"),
-  lty = c(1, 1, 2),
-  lwd = c(2, 2, 1)
-)
-dev.off()
+# time_stamp <- "20190417134522"
+# metric <- "prediction_strength"
+# decreasing <- TRUE
+# dir_out <- file.path("..", "results", "PPMI", "vader", "hyperparameter_optimization", time_stamp)
+# p <- parse_results(dir_out, metric, decreasing = decreasing)
+# fwrite(p, file = file.path(dir_out, "number_of_clusters.csv"))
+# 
+# pdf(file.path(dir_out, "number_of_clusters.pdf"))
+# 
+# mu <- p[[metric]]
+# sigma <- p[[sprintf("%s__95CI", metric)]]
+# mu_null <- p[[sprintf("%s_null", metric)]]
+# sigma_null <- p[[sprintf("%s_null__95CI", metric)]]
+# ii <- order(p$k, decreasing = FALSE)
+# x <- matrix(rep(p$k, 6), ncol = 6)[ii,]
+# y <- cbind(
+#   mu - sigma, mu, mu + sigma,
+#   mu_null - sigma_null, mu_null, mu_null + sigma_null
+# )[ii,]
+# matplot(
+#   x = x,
+#   y = y,
+#   xlab = "k",
+#   ylab = metric,
+#   type = "l",
+#   lty = rep(c(2, 1, 2), 2),
+#   lwd = rep(c(1, 2, 1), 2),
+#   col = c(rep("blue", 3), rep("red", 3)),
+#   main = ""
+# )
+# legend(
+#   "topright",
+#   legend = c("model", "null", "95% CI"),
+#   col = c("blue", "red", "gray"),
+#   lty = c(1, 1, 2),
+#   lwd = c(2, 2, 1)
+# )
+# dev.off()
 
 ############################################
 # final model with optimal hyperparameters #
@@ -129,14 +127,17 @@ batch_size <- 16
 n_layer <- 2
 n_hidden1 <- 128
 n_hidden2 <- 32
-# f_in <- file.path("..", "data", "PPMI", "PPMI.RData")
-f_in <- file.path("PPMI_artificial_data.RData")
+f_in <- file.path("..", "data", "PPMI", "PPMI.RData")
+# f_in <- file.path("PPMI_artificial_data.RData")
 vader_path <- "../VaDER/"
 
-load(f_in)
-W <- 1 - MNAR
-dimnames(X)[[3]] <- dimnames(W)[[3]] <- toupper(dimnames(X)[[3]])
-X[W == 0] <- 0 # set missing values arbitrarily to 0 (can be any value)
+s <- parse("PPMI_hyperparameter_optimization.r")
+# makes available the functions load_data(), ...
+eval(s[grep("<- function\\(", s)]) 
+
+L <- load_data(f_in)
+X <- L$X
+W <- L$W
 
 # The final model, on all data
 VADER <- import_from_path("vader", path = vader_path)$VADER
@@ -151,11 +152,10 @@ vader <- VADER(
   learning_rate = learning_rate,
   batch_size = as.integer(batch_size),
   output_activation = NULL,
-  alpha = 1.0,
   seed = 123L, # makes it reproducible
   recurrent = TRUE,
   # n_thread = 1L,
-  weights = W # represents the missing values
+  W_train = W # represents the missing values
 )
 vader$pre_fit(n_epoch = as.integer(100), verbose = TRUE)
 vader$fit(n_epoch = as.integer(100), verbose = TRUE)
@@ -164,13 +164,17 @@ print(table(yhat))
 
 save(yhat, file = file.path(dir_out, "clusters.RData"))
 
+# Only plot values that are non-missing (missing values were assigned an
+# arbitrary numerical value of 0 for the purpose of model fitting.)
+X[W == 0] <- NA
+
 pdf(file.path(dir_out, "cluster_means.pdf"), width = 7, height = 7)
 
 par(mfrow = c(3, 3))
 YLIM <- list()
 for (i in 1:dim(X)[3]) {
   dt <- data.table(X[,,i])
-  means <- as.matrix(dt[ , lapply(.SD, mean), by = yhat])
+  means <- as.matrix(dt[ , lapply(.SD, mean, na.rm = TRUE), by = yhat])
   means <- means[order(means[,"yhat"]),]
   y <- t(means[,-1,drop=FALSE])
   clusters <- means[,1,drop=FALSE]
@@ -186,6 +190,13 @@ for (i in 1:dim(X)[3]) {
   }
   y <- cbind(y, y - yci, y + yci)
   x <- as.numeric(rownames(y))
+  # some scores have entirely missing time points. we just 
+  # linearly interpolate these, purely for reasons of being
+  # able to plot it together with the other scores.
+  y <- apply(y, 2, function(ycol) {
+    ii <- which(!is.na(ycol))
+    approx(x = x[ii], y = ycol[ii], xout = x)$y
+  })
   YLIM[[i]] <- range(y)
   matplot(x, y,
     type = "l",
@@ -239,7 +250,7 @@ vader_sim <- VADER(
   seed = 123L, # makes it reproducible
   y_train = y_sim,
   recurrent = TRUE,
-  weights = W_sim
+  W_train = W_sim
   # n_thread = 1L,
   # phi = rep(1/k, k)
 )

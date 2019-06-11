@@ -51,6 +51,12 @@ parse_results <- function(results_dir, metric, decreasing = TRUE) {
 # non-variational hyperparameter optimization #
 ###############################################
 
+# First run ADNI_hyperparameter_optimization.r, which 
+# writes its output to a directory for which you need
+# to provide the name below in the variable dir_out. 
+# Given the hyperparameter optimization results, the
+# code below is runnable and can be uncommented
+
 time_stamp <- "20190412210934"
 metric <- "test_reconstruction_loss"
 decreasing <- FALSE
@@ -64,6 +70,12 @@ fwrite(perf, file = file.path(results_dir, "grid_search.csv"))
 # variational models with optimal          #
 # hyperparameters for each k: choose best k#
 ############################################
+
+# First run ADNI_hyperparameter_optimization.r, which 
+# writes its output to a directory for which you need
+# to provide the name below in the variable dir_out. 
+# Given the hyperparameter optimization results, the
+# code below is runnable and can be uncommented
 
 time_stamp <- "20190417124750"
 metric <- "prediction_strength"
@@ -144,12 +156,10 @@ n_hidden1 <- 64
 n_hidden2 <- 32
 code_dir <- "."
 code_file <- "ADNI_hyperparameter_optimization.r"
-# f_in <- file.path("..", "data", "ADNI", "ADNI.RData")
-f_in <- file.path("ADNI_artificial_data.RData")
+f_in <- file.path("..", "data", "ADNI", "ADNI.RData")
+# f_in <- file.path("ADNI_artificial_data.RData")
 vader_path <- "../VaDER/"
 vars <- c("ADAS13", "CDRSB", "MMSE", "FAQ")
-# vars <- c("ADAS13", "CDRSB", "MMSE", "FAQ", "RAVLT.forgetting", "RAVLT.immediate", "RAVLT.learning")
-# vars <- c("RAVLT.forgetting", "RAVLT.immediate", "RAVLT.learning")
 
 s <- parse(file.path(code_dir, code_file))
 # makes available the functions load_data(), ...
@@ -158,7 +168,6 @@ eval(s[grep("<- function\\(", s)])
 L <- load_data(f_in, vars)
 X_train <- L$X
 W_train <- L$W
-X_train[W_train == 0] <- 0 # set missing values arbitrarily to 0 (can be any value)
 ptid <- L$ptid
 
 # X <- X_train
@@ -183,7 +192,7 @@ vader <- VADER(
   seed = 123L, # makes it reproducible
   recurrent = TRUE,
   # n_thread = 1L,
-  weights = W_train
+  W_train = W_train
   # phi = rep(1/k, k)
 )
 system.time(vader$pre_fit(n_epoch = as.integer(100), verbose = TRUE))
@@ -198,6 +207,8 @@ save(yhat, file = file.path(results_dir, "clustering.RData"))
 
 pdf(file.path(results_dir, "cluster_means.pdf"), width = 7, height = 7)
 
+# Only plot values that are non-missing (missing values were assigned an
+# arbitrary numerical value of 0 for the purpose of model fitting.)
 X_train[W_train == 0] <- NA
 
 n <- ceiling(sqrt(dim(X_train)[3]))
@@ -226,14 +237,14 @@ for (i in 1:dim(X_train)[3]) {
   x <- as.numeric(rownames(y))
   YLIM[[i]] <- range(y, na.rm = TRUE)
   matplot(x, y,
-    type = "l",
-    col = rainbow(nc),
-    lty = rep(c(1, 2, 2), each = nc),
-    lwd = rep(c(3, 1, 1), each = nc),
-    xlab = "Month",
-    ylim = YLIM[[i]],
-    ylab = "z-score relative to baseline",
-    main = sprintf("%s", dimnames(X_train)[[3]][i])
+          type = "l",
+          col = rainbow(nc),
+          lty = rep(c(1, 2, 2), each = nc),
+          lwd = rep(c(3, 1, 1), each = nc),
+          xlab = "Month",
+          ylim = YLIM[[i]],
+          ylab = "z-score relative to baseline",
+          main = sprintf("%s", dimnames(X_train)[[3]][i])
   )
   if (i == dim(X_train)[3]) {
     tab <- table(yhat)
@@ -274,7 +285,7 @@ vader_sim <- VADER(
   seed = 123L, # makes it reproducible
   y_train = y_sim,
   recurrent = TRUE,
-  weights = W_sim
+  W_train = W_sim
   # n_thread = 1L,
   # phi = rep(1/k, k)
 )
@@ -309,14 +320,14 @@ for (i in 1:dim(X_sim)[3]) {
   x <- as.numeric(rownames(y))
   YLIM[[i]] <- range(y, na.rm = TRUE)
   matplot(x, y,
-    type = "l",
-    col = rainbow(nc),
-    lty = rep(c(1, 2, 2), each = nc),
-    lwd = rep(c(3, 1, 1), each = nc),
-    xlab = "Month",
-    ylim = YLIM[[i]],
-    ylab = "z-score relative to baseline",
-    main = sprintf("%s", dimnames(X_sim)[[3]][i])
+          type = "l",
+          col = rainbow(nc),
+          lty = rep(c(1, 2, 2), each = nc),
+          lwd = rep(c(3, 1, 1), each = nc),
+          xlab = "Month",
+          ylim = YLIM[[i]],
+          ylab = "z-score relative to baseline",
+          main = sprintf("%s", dimnames(X_sim)[[3]][i])
   )
   if (i == dim(X_sim)[3]) {
     tab <- table(yhat)

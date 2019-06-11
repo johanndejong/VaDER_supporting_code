@@ -64,16 +64,26 @@ dir.create(DIR_OUT, recursive = TRUE)
 s <- parse(file.path(CODE_DIR, CODE_FILE))
 # makes available the functions explore_grid and cross_validate 
 # that we also used for ADNI
-eval(s[grep("<- function\\(", s)]) 
+eval(s[grep("<- function\\(", s)])
 
-load(F_IN)
-W <- 1 - MNAR
-dimnames(X)[[3]] <- dimnames(W)[[3]] <- toupper(dimnames(X)[[3]])
-X[W == 0] <- 0 # set missing values arbitrarily to 0 (can be any value)
+load_data <- function(f_in) {
+  s <- load(f_in)
+  if ("y" %in% s) { # cluster label is present: artificial data
+    X[W == 0] <- 0 # set missing values arbitrarily to 0 (can be any value)
+    list(X = X, W = W, y = y)
+  } else {
+    W <- 1 - MNAR
+    dimnames(X)[[3]] <- dimnames(W)[[3]] <- toupper(dimnames(X)[[3]])
+    X[W == 0] <- 0 # set missing values arbitrarily to 0 (can be any value)
+    list(X = X, W = W)
+  }
+}
+
+L <- load_data(f_in)
 
 perf <- explore_grid(
-  data = X,
-  weights = W,
+  data = L$X,
+  weights = L$W,
   param_grid = PARAM_GRID,
   n_sample = N_SAMPLE,
   n_fold = N_FOLD,

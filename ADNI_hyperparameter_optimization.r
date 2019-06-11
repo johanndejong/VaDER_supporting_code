@@ -61,27 +61,35 @@ file.remove(PRINT_OUT)
 dir.create(DIR_OUT, recursive = TRUE)
 
 load_data <- function(f_in, vars) {
-	load(f_in)
-	dt <- dt[, grepl(paste(vars, collapse = "|"), colnames(dt)), with = FALSE]
-	# dt <- dt[, grepl("m00$|m06$|m12$|m24$", colnames(dt)), with = FALSE]
-	dt_raw <- !is.na(dt_raw[, match(colnames(dt), colnames(dt_raw)), with = FALSE])
-	mnar <- 1 - mnar[, match(colnames(dt), colnames(mnar)), with = FALSE]
-	I <- split(1:ncol(dt), gsub("\\.m[0-9]{2}", "", colnames(dt)))
-	colnames(dt) <- as.character(as.integer(gsub("^.*\\.m", "", colnames(dt))))
-	X <- lapply(I, function(ii) { as.matrix(dt[, ii, with = FALSE]) })
-	names(X) <- names(I)
-	X_train <- do.call(abind, c(X, along = 3))
-	# X_train <- X_train
-	W <- mnar # mnar, dt_raw
-	I <- split(1:ncol(W), gsub("\\.m[0-9]{2}", "", colnames(W)))
-	colnames(W) <- as.character(as.integer(gsub("^.*\\.m", "", colnames(W))))
-	W <- lapply(I, function(ii) {
-	  as.matrix(W[, ii, with = FALSE])
-	})
-	names(W) <- names(I)
-	W_train <- do.call(abind, c(W, along = 3))
-	mode(W_train) <- "numeric"
-	list(X = X_train, W = W_train, ptid = annot$PTID)
+	s <- load(f_in)
+	if ("y" %in% s) { # cluster label is present: artificial data
+	  # set missing values arbitrarily to 0 (can be any value)
+	  X[W == 0] <- 0 
+	  list(X = X, W = W, ptid = 1:dim(X)[1], y = y)
+	} else {
+	  dt <- dt[, grepl(paste(vars, collapse = "|"), colnames(dt)), with = FALSE]
+	  # dt <- dt[, grepl("m00$|m06$|m12$|m24$", colnames(dt)), with = FALSE]
+	  dt_raw <- !is.na(dt_raw[, match(colnames(dt), colnames(dt_raw)), with = FALSE])
+	  mnar <- 1 - mnar[, match(colnames(dt), colnames(mnar)), with = FALSE]
+	  I <- split(1:ncol(dt), gsub("\\.m[0-9]{2}", "", colnames(dt)))
+	  colnames(dt) <- as.character(as.integer(gsub("^.*\\.m", "", colnames(dt))))
+	  X <- lapply(I, function(ii) { as.matrix(dt[, ii, with = FALSE]) })
+	  names(X) <- names(I)
+	  X_train <- do.call(abind, c(X, along = 3))
+	  # X_train <- X_train
+	  W <- mnar # mnar, dt_raw
+	  I <- split(1:ncol(W), gsub("\\.m[0-9]{2}", "", colnames(W)))
+	  colnames(W) <- as.character(as.integer(gsub("^.*\\.m", "", colnames(W))))
+	  W <- lapply(I, function(ii) {
+	    as.matrix(W[, ii, with = FALSE])
+	  })
+	  names(W) <- names(I)
+	  W_train <- do.call(abind, c(W, along = 3))
+	  mode(W_train) <- "numeric"
+	  # set missing values arbitrarily to 0 (can be any value)
+	  X_train[W_train == 0] <- 0 
+	  list(X = X_train, W = W_train, ptid = annot$PTID)
+	}
 }
 
 cross_validate <- function(params, data, weights, n_fold, n_perm, seed = NULL) {
@@ -164,7 +172,7 @@ cross_validate <- function(params, data, weights, n_fold, n_perm, seed = NULL) {
       output_activation = NULL,
       seed = if (is.null(seed)) NULL else as.integer(seed),
       recurrent = TRUE,
-      weights = weights[-fold,,, drop = FALSE],
+      W_train = weights[-fold,,, drop = FALSE],
       n_thread = 1L
     )
     if (COMPUTE_PREDICTION_STRENGTH) {
@@ -202,7 +210,7 @@ cross_validate <- function(params, data, weights, n_fold, n_perm, seed = NULL) {
         output_activation = NULL,
         seed = if (is.null(seed)) NULL else as.integer(seed),
         recurrent = TRUE,
-        weights = weights[fold,,, drop = FALSE],
+        W_train = weights[fold,,, drop = FALSE],
         n_thread = 1L
       )
       vader$pre_fit(n_epoch = as.integer(100), verbose = FALSE)
@@ -348,7 +356,6 @@ explore_grid <- function(
 }
 
 L <- load_data(f_in = F_IN, vars = VARS)
-L$X[L$W == 0] <- 0 # set missing values arbitrarily to 0 (can be any value)
 perf <- explore_grid(
   data = L$X,
   weights = L$W,
